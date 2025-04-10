@@ -407,7 +407,8 @@ void ILabs::ProcessData(InertialLabs::SensorsData *data)
 		local_position.vxy_max = INFINITY;
 		local_position.vz_max = INFINITY;
 		local_position.hagl_min = INFINITY;
-		local_position.hagl_max = INFINITY;
+		local_position.hagl_max_z = INFINITY;
+		local_position.hagl_max_xy = INFINITY;
 
 		_local_position_pub.publish(local_position);
 		perf_count(_local_position_pub_interval_perf);
