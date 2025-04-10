@@ -226,9 +226,7 @@ void ILabs::Run()
 		return;
 
 	} else if (!_sensor.IsInitialized()) {
-		const bool result = _sensor.Init(_serialDeviceName, [this](void *data) {
-			ProcessData(data);
-		});
+		const bool result = _sensor.Init(_serialDeviceName, this, &ILabs::ProcessDataProxy);
 
 		if (!result) {
 			ScheduleDelayed(1_s);
@@ -267,12 +265,16 @@ void ILabs::Run()
 	ScheduleDelayed(100_ms);
 }
 
-void ILabs::ProcessData(void *sensordata)
+void ILabs::ProcessData(InertialLabs::SensorsData *data)
 {
 	// PX4 by default uses FRD/NED frame position
 	// Inertial Labs INS by default uses in RFU/ENU frame position
 
-	InertialLabs::SensorsData *data = reinterpret_cast<InertialLabs::SensorsData*>(sensordata);
+	if (!data)
+	{
+		PX4_ERR("Invalid sensor data");
+		return;
+	}
 
 	const bool isFilterOk = (data->ins.unitStatus & InertialLabs::USW::INITIAL_ALIGNMENT_FAIL) == 0 &&
 				 data->ins.solutionStatus != InertialLabs::InsSolution::INVALID;

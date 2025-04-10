@@ -88,7 +88,12 @@ public:
 
 private:
 	void Run() override;
-	void ProcessData(void *sensordata);
+	void ProcessData(InertialLabs::SensorsData *sensordata);
+	static void ProcessDataProxy(void* context, InertialLabs::SensorsData *data)
+	{
+		ILabs* self = static_cast<ILabs*>(context);
+		self->ProcessData(data);
+	}
 
 	InertialLabs::Sensor _sensor{};
 

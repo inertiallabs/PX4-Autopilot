@@ -33,7 +33,6 @@
 
 #pragma once
 
-#include <functional>
 #include <pthread.h>
 
 #include <px4_platform_common/Serial.hpp>
@@ -46,30 +45,31 @@ constexpr uint16_t BUFFER_SIZE{512};
 
 class Sensor {
 public:
-    using CallbackHandler = std::function<void(void*)>;
+    // Use C-style function pointer, because we can't use std::function on some platforms
+    using DataHandler = void(*)(void*, SensorsData*);
 
     Sensor() = default;
     Sensor (const Sensor&) = delete;
     Sensor& operator= (const Sensor&) = delete;
     ~Sensor();
 
-    bool Init(const char *serialDeviceName, CallbackHandler handler);
+    bool Init(const char * serialDeviceName, void * context, DataHandler dataHandler);
     void Deinit();
     bool IsInitialized() const;
 
     void UpdateData();
 private:
-    static void *UpdateDataThreadHelper(void *context)
+    static void *UpdateDataThreadHelper(void * context)
     {
-        Sensor *sensor = reinterpret_cast<Sensor*>(context);
+        Sensor * sensor = reinterpret_cast<Sensor*>(context);
         sensor->UpdateData();
         return nullptr;
     }
     void ResetSerial();
 
-    bool IsMessageHeaderCorrect(const MessageHeader *header) const;
+    bool IsMessageHeaderCorrect(const MessageHeader * header) const;
 
-    bool MoveToBufferStart(const uint8_t *pos);
+    bool MoveToBufferStart(const uint8_t * pos);
     bool SkipPackageInBufferStart();
     bool MovePackageHeaderToBufferStart();
     bool MoveValidPackageToBufferStart();
@@ -79,7 +79,10 @@ private:
     device::Serial *_serial{nullptr};
     pthread_t _threadId;
     bool _processInThread{false};
-    CallbackHandler _handler;
+
+    // callback. C-style class method pointer
+    void * _context{nullptr};
+    DataHandler _dataHandler{nullptr};
 
     bool _isInitialized{false};
 

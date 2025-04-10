@@ -52,7 +52,7 @@ constexpr int BAUDRATE = 921600;
 constexpr float GRAVITY_MSS = 9.8106f;
 
 // sums the bytes in the supplied buffer, returns that sum mod 0xFFFF
-uint16_t Checksum(const uint8_t *data, uint16_t len)
+uint16_t Checksum(const uint8_t * data, uint16_t len)
 {
     uint16_t sum = 0;
     for (uint32_t i = 0; i < len; i++) {
@@ -61,13 +61,13 @@ uint16_t Checksum(const uint8_t *data, uint16_t len)
     return sum;
 }
 
-uint16_t ReadPackageChecksum(const uint8_t *checksumByte)
+uint16_t ReadPackageChecksum(const uint8_t * checksumByte)
 {
     return (checksumByte[1] << 8) | checksumByte[0];
 }
 
 // Convert from right-front-up to front-right-down or ENU to NED
-matrix::Vector3f RfuToFrd(const matrix::Vector3f& vector3f) {
+matrix::Vector3f RfuToFrd(const matrix::Vector3f & vector3f) {
     return matrix::Vector3f{vector3f(1), vector3f(0), -vector3f(2)};
 }
 
@@ -80,7 +80,7 @@ Sensor::~Sensor()
     ResetSerial();
 }
 
-bool Sensor::Init(const char *serialDeviceName, CallbackHandler handler)
+bool Sensor::Init(const char * serialDeviceName, void * context, DataHandler dataHandler)
 {
     if(_isInitialized) {
         PX4_ERR("Serial device already initialized. Deinitialize first.");
@@ -92,8 +92,8 @@ bool Sensor::Init(const char *serialDeviceName, CallbackHandler handler)
         return false;
     }
 
-    if(!handler) {
-        PX4_ERR("Empty handler callback");
+    if(!context || !dataHandler) {
+        PX4_ERR("Empty data handler callback");
         return false;
     }
 
@@ -117,7 +117,8 @@ bool Sensor::Init(const char *serialDeviceName, CallbackHandler handler)
 
         _serial->flush();
     }
-    _handler = handler;
+    _context = context;
+    _dataHandler = dataHandler;
 
     _processInThread = true;
     const int result = pthread_create(&_threadId, nullptr, &Sensor::UpdateDataThreadHelper, this);
@@ -161,7 +162,7 @@ void Sensor::UpdateData()
             continue;
         }
 
-        _handler(reinterpret_cast<void*>(&_sensorData));
+        _dataHandler(_context, &_sensorData);
 
         SkipPackageInBufferStart();
     }
@@ -176,7 +177,7 @@ void Sensor::ResetSerial()
     }
 }
 
-bool Sensor::IsMessageHeaderCorrect(const MessageHeader *header) const
+bool Sensor::IsMessageHeaderCorrect(const MessageHeader * header) const
 {
     if (!header)
     {
@@ -190,7 +191,7 @@ bool Sensor::IsMessageHeaderCorrect(const MessageHeader *header) const
         (header->msgLen + 2) <= BUFFER_SIZE; //< 2 is size of PackageHeader, that not included in msgLen
 }
 
-bool Sensor::MoveToBufferStart(const uint8_t *pos)
+bool Sensor::MoveToBufferStart(const uint8_t * pos)
 {
     if (!pos) {
         PX4_ERR("Invalid position pointer");
@@ -275,7 +276,7 @@ bool Sensor::MoveValidPackageToBufferStart()
         return false;
     }
 
-    const MessageHeader *packageHeader = reinterpret_cast<MessageHeader *>(_buf);
+    const MessageHeader * packageHeader = reinterpret_cast<MessageHeader *>(_buf);
     if (!IsMessageHeaderCorrect(packageHeader)) {
         PX4_DEBUG("Message header in the buffer start is incorrect");
         MovePackageHeaderToBufferStart();
@@ -305,7 +306,7 @@ bool Sensor::MoveValidPackageToBufferStart()
 
 bool Sensor::ParseUDDPayload()
 {
-    const MessageHeader *packageHeader = reinterpret_cast<MessageHeader *>(_buf);
+    const MessageHeader * packageHeader = reinterpret_cast<MessageHeader *>(_buf);
 
     if (!IsMessageHeaderCorrect(packageHeader)) {
         PX4_ERR("Package header in buffer start is incorrect");
@@ -313,7 +314,7 @@ bool Sensor::ParseUDDPayload()
     }
 
     const uint16_t payloadSize = packageHeader->msgLen - 6;
-    const uint8_t *payload = &_buf[6];
+    const uint8_t * payload = &_buf[6];
 
     const uint8_t messageCount = payload[0];
     if (messageCount == 0 ||
@@ -323,7 +324,7 @@ bool Sensor::ParseUDDPayload()
         return false;
     }
     // 1 byle for message count + byte list of messages types
-    const uint8_t *messageDataOffset = &payload[1 + messageCount];
+    const uint8_t * messageDataOffset = &payload[1 + messageCount];
 
     for (uint8_t i = 0; i < messageCount; i++) {
         uint8_t messageLength = 0;
