@@ -119,6 +119,7 @@ set(msg_files
 	InputRc.msg
 	InternalCombustionEngineControl.msg
 	InternalCombustionEngineStatus.msg
+	InertialLabsIns.msg
 	IridiumsbdStatus.msg
 	IrlockReport.msg
 	LandingGear.msg
