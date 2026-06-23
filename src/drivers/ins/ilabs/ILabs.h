@@ -51,6 +51,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
+#include <uORB/topics/inertial_labs_ins.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_selection.h>
@@ -118,6 +119,7 @@ private:
 	uORB::Publication<sensor_selection_s>             _sensor_selection_pub{ORB_ID(sensor_selection)};
 	uORB::Publication<estimator_status_s>             _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::Publication<estimator_status_flags_s>       _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
+	uORB::Publication<inertial_labs_ins_s>            _inertial_labs_ins_pub{ORB_ID(inertial_labs_ins)};
 
 	perf_counter_t _accel_pub_interval_perf;
 	perf_counter_t _gyro_pub_interval_perf;

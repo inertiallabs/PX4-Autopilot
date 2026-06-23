@@ -586,6 +586,15 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 		_estimator_status_flags_pub.publish(estimator_flags);
 	}
+
+	inertial_labs_ins_s inertial_labs_ins{};
+	inertial_labs_ins.timestamp = time_now_us;
+	inertial_labs_ins.unit_status = data->ins.unitStatus;
+	inertial_labs_ins.unit_status2 = data->ins.unitStatus2;
+	inertial_labs_ins.air_data_status = data->ins.airDataStatus;
+	inertial_labs_ins.solution_status = data->ins.solutionStatus;
+	inertial_labs_ins.gnss_new_data = data->gps.newData;
+	_inertial_labs_ins_pub.publish(inertial_labs_ins);
 }
 
 extern "C" __EXPORT int ilabs_main(int argc, char *argv[]) {
