@@ -169,8 +169,6 @@ bool Sensor::init(const char *serialDeviceName, void *context, DataHandler dataH
 		return false;
 	}
 
-	pthread_detach(_threadId);
-
 	_isInitialized.store(true);
 	return true;
 }
@@ -185,8 +183,11 @@ void Sensor::deinit()
 	_isDeinitInProcess.store(true);
 	_isInitialized.store(false);
 	_processInThread.store(false);
-	// Wait to be shure, that operations with UART are finished
-	px4_sleep(1); // NOLINT(concurrency-mt-unsafe)
+
+	if (_threadId != 0) {
+		pthread_join(_threadId, nullptr);
+		_threadId = 0;
+	}
 
 	if (_serial) {
 		(void)_serial->close();
