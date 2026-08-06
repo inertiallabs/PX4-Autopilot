@@ -450,8 +450,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 			local_position.ay = data->accel(1);
 			local_position.az = data->accel(2);
 
-			local_position.heading = static_cast<float>(data->ext.headingData.heading) *
-									 static_cast<float>(M_DEG_TO_RAD) * 0.01f;  // rad
+			local_position.heading = matrix::wrap_pi(math::radians(data->ins.yaw));
 			local_position.unaided_heading          = NAN;
 			local_position.heading_good_for_control = true;
 
