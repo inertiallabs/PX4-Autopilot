@@ -404,10 +404,30 @@ struct SensorsData {
 	float            supplyVoltage;         // V
 };
 
-struct AverageSensorsData {
-	float            pressure;              // Pa
-	float            temperature;           // degC
-	uint8_t          count;                 // number of samples
+struct AccumulatedSensorsData {
+	float            baroPressure;                     // Pa
+	float            baroTemperature;                  // degC
+	uint8_t          baroCount;                        // number of samples
+
+	float            differentialPressure;             // Pa
+	float            differentialPressureTemperature;  // degC
+	uint8_t          differentialPressureCount;        // number of samples
+
+	uint8_t          airspeedCount;                    // number of samples
+
+	void resetBaro()
+	{
+		baroCount = 0;
+		baroPressure = 0.0f;
+		baroTemperature = 0.0f;
+	}
+
+	void resetDifferentialPressure()
+	{
+		differentialPressureCount = 0;
+		differentialPressure = 0.0f;
+		differentialPressureTemperature = 0.0f;
+	}
 };
 
 struct ReferencePositionData {

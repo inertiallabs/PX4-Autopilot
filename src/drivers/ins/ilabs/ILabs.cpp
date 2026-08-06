@@ -82,7 +82,10 @@ ILabs::ILabs(const char *serialDeviceName)
 	  _baro_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Baro publish interval")),
 	  _attitude_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Attitude publish interval")),
 	  _local_position_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Local position publish interval")),
-	  _global_position_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Global position publish interval"))
+	  _global_position_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Global position publish interval")),
+	  _differential_pressure_pub_interval_perf(perf_alloc(PC_INTERVAL,
+			  MODULE_NAME ": Differential pressure publish interval")),
+	  _airspeed_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Airspeed publish interval"))
 {
 	// store port name
 	strncpy(_serialDeviceName, serialDeviceName, sizeof(_serialDeviceName) - 1);
@@ -109,6 +112,8 @@ ILabs::ILabs(const char *serialDeviceName)
 	_global_position_pub.advertise();
 	_sensor_baro_pub.advertise();
 	_sensor_gps_pub.advertise();
+	_differential_pressure_pub.advertise();
+	_airspeed_pub.advertise();
 }
 
 ILabs::~ILabs()
@@ -123,6 +128,8 @@ ILabs::~ILabs()
 	perf_free(_attitude_pub_interval_perf);
 	perf_free(_local_position_pub_interval_perf);
 	perf_free(_global_position_pub_interval_perf);
+	perf_free(_differential_pressure_pub_interval_perf);
+	perf_free(_airspeed_pub_interval_perf);
 }
 
 int ILabs::task_spawn(int argc, char *argv[])
@@ -240,6 +247,8 @@ int ILabs::print_status() {
 	perf_print_counter(_attitude_pub_interval_perf);
 	perf_print_counter(_local_position_pub_interval_perf);
 	perf_print_counter(_global_position_pub_interval_perf);
+	perf_print_counter(_differential_pressure_pub_interval_perf);
+	perf_print_counter(_airspeed_pub_interval_perf);
 
 	return 0;
 }
@@ -322,6 +331,8 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 			       (std::abs(data->ins.longitude) > 1e-7);
 
 	const bool isBaroOk = (data->ins.unitStatus2 & InertialLabs::USW2::ADU_BARO_FAIL) == 0;
+	const bool isDiffPressOk = (data->ins.unitStatus2 & InertialLabs::USW2::ADU_DIFF_PRESS_FAIL) == 0;
+	const bool isAirspeedOk = (data->ins.airDataStatus & InertialLabs::ADU::AIRSPEED_FAIL) == 0;
 
 	const bool isSpoofed = (data->gps.spoofingStatus != InertialLabs::SpoofingStatus::UNKNOWN_OR_DEACTIVATED) &&
 			       (data->gps.spoofingStatus != InertialLabs::SpoofingStatus::NO);
@@ -370,26 +381,72 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 	// publish baro
 	if (isFilterOk && isBaroOk) {
-		if (_average_sensors_data.count > DECIMATION_VALUE) {
+		if (_accumulated_sensors_data.baroCount > DECIMATION_VALUE) {
 			sensor_baro_s sensor_baro{};
 			sensor_baro.timestamp = time_now_us;
 			sensor_baro.timestamp_sample = time_now_us;
 
 			sensor_baro.device_id   = _device_id.devid;
-			sensor_baro.pressure    = _average_sensors_data.pressure / static_cast<float>(_average_sensors_data.count);    // Pa
-			sensor_baro.temperature = _average_sensors_data.temperature / static_cast<float>(_average_sensors_data.count);  // degC
+			sensor_baro.pressure    = _accumulated_sensors_data.baroPressure / static_cast<float>(_accumulated_sensors_data.baroCount);  // Pa
+			sensor_baro.temperature = _accumulated_sensors_data.baroTemperature / static_cast<float>(_accumulated_sensors_data.baroCount);  // degC
 
 			_sensor_baro_pub.publish(sensor_baro);
 			perf_count(_baro_pub_interval_perf);
 
-			_average_sensors_data.count = 0;
-			_average_sensors_data.pressure = 0.0f;
-			_average_sensors_data.temperature = 0.0f;
+			_accumulated_sensors_data.resetBaro();
 		}
 
-		_average_sensors_data.pressure += data->pressure;  // Pa
-		_average_sensors_data.temperature += data->temperature;  // degC
-		++_average_sensors_data.count;
+		_accumulated_sensors_data.baroPressure += data->pressure;  // Pa
+		_accumulated_sensors_data.baroTemperature += data->temperature;  // degC
+		++_accumulated_sensors_data.baroCount;
+	} else {
+		_accumulated_sensors_data.resetBaro();
+	}
+
+	// publish differential pressure
+	if (isDiffPressOk) {
+		if (_accumulated_sensors_data.differentialPressureCount > DECIMATION_VALUE) {
+			differential_pressure_s differential_pressure{};
+			differential_pressure.timestamp        = time_now_us;
+			differential_pressure.timestamp_sample = time_now_us;
+
+			differential_pressure.device_id = _device_id.devid;
+			differential_pressure.differential_pressure_pa =
+				_accumulated_sensors_data.differentialPressure / static_cast<float>(_accumulated_sensors_data.differentialPressureCount);  // Pa
+			differential_pressure.temperature =
+				_accumulated_sensors_data.differentialPressureTemperature / static_cast<float>(_accumulated_sensors_data.differentialPressureCount);  // degC
+
+			_differential_pressure_pub.publish(differential_pressure);
+			perf_count(_differential_pressure_pub_interval_perf);
+
+			_accumulated_sensors_data.resetDifferentialPressure();
+		}
+
+		_accumulated_sensors_data.differentialPressure += data->differentialPressure;  // Pa
+		_accumulated_sensors_data.differentialPressureTemperature += data->temperature;  // degC
+		++_accumulated_sensors_data.differentialPressureCount;
+	} else {
+		_accumulated_sensors_data.resetDifferentialPressure();
+	}
+
+	// publish airspeed
+	if (isAirspeedOk) {
+		if (_accumulated_sensors_data.airspeedCount > DECIMATION_VALUE) {
+			airspeed_s airspeed{};
+			airspeed.timestamp        = time_now_us;
+			airspeed.timestamp_sample = time_now_us;
+
+			airspeed.indicated_airspeed_m_s = data->ins.calibratedAirspeed;  // m/s
+			airspeed.true_airspeed_m_s      = data->ins.trueAirspeed;        // m/s
+			airspeed.confidence             = 1.0f;
+
+			_airspeed_pub.publish(airspeed);
+			perf_count(_airspeed_pub_interval_perf);
+
+			_accumulated_sensors_data.airspeedCount = 0;
+		}
+
+		++_accumulated_sensors_data.airspeedCount;
 	}
 
 	// publish attitude

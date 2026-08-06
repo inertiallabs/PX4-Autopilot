@@ -49,6 +49,8 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/inertial_labs_ins.h>
@@ -97,7 +99,7 @@ private:
 	InertialLabs::Sensor _sensor{};
 
 	char _serialDeviceName[20] {};
-	InertialLabs::AverageSensorsData _average_sensors_data{};
+	InertialLabs::AccumulatedSensorsData _accumulated_sensors_data{};
 	device::Device::DeviceId _device_id{};
 
 	px4::atomic<hrt_abstime> _time_initialized{0};
@@ -116,6 +118,8 @@ private:
 	uORB::PublicationMulti<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::PublicationMulti<sensor_baro_s>             _sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<sensor_gps_s>              _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<differential_pressure_s>   _differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::PublicationMulti<airspeed_s>                _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<sensor_selection_s>             _sensor_selection_pub{ORB_ID(sensor_selection)};
 	uORB::Publication<estimator_status_s>             _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::Publication<estimator_status_flags_s>       _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
@@ -129,4 +133,6 @@ private:
 	perf_counter_t _attitude_pub_interval_perf;
 	perf_counter_t _local_position_pub_interval_perf;
 	perf_counter_t _global_position_pub_interval_perf;
+	perf_counter_t _differential_pressure_pub_interval_perf;
+	perf_counter_t _airspeed_pub_interval_perf;
 };
