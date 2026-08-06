@@ -84,10 +84,10 @@ bool isMessageHeaderValid(const MessageHeader *header)
 	}
 
 	return header->magicNumber == MAGIC_NUMBER && header->msgType == 1 && header->msgId == 0x95 &&
+	       header->msgLen > MESSAGE_HEADER_LEN &&
 	       (header->msgLen + MAGIC_NUMBER_LEN) <= InertialLabs::BUFFER_SIZE;
 }
 
-// sums the bytes in the supplied buffer, returns that sum mod 0xFFFF
 uint16_t checksum(const uint8_t *data, uint16_t len)
 {
 	uint16_t sum = 0;
@@ -247,7 +247,6 @@ bool Sensor::initSerialPort(const char *serialDeviceName)
 
 	if (_serial == nullptr) {
 		PX4_ERR("Error creating serial device: %s", serialDeviceName);
-		px4_sleep(1); // NOLINT(concurrency-mt-unsafe)
 		return false;
 	}
 
@@ -358,7 +357,7 @@ bool Sensor::moveMessageHeaderToBufferStart()
 	}
 
 	const uint8_t *startPackagePos = (const uint8_t *)memmem(&_buf[1],
-					 _bufOffset - MAGIC_NUMBER_LEN,
+					 _bufOffset - (MAGIC_NUMBER_LEN - 1),
 					 &MAGIC_NUMBER,
 					 MAGIC_NUMBER_LEN);
 
@@ -380,6 +379,7 @@ bool Sensor::parseUDDPayload()
 
 	if (!isMessageHeaderValid(messageHeader)) {
 		// PX4_ERR("Message header in buffer start is incorrect");
+		moveMessageHeaderToBufferStart();
 		perf_count(_udd_parse_fail_perf);
 		return false;
 	}
@@ -684,10 +684,16 @@ bool Sensor::parseUDDPayload()
 		default: {
 				// PX4_ERR("Unknown message type: %d. Further message parsing result will be incorrect",
 				//         messageType);
-				messageLength = 0;
+				moveMessageHeaderToBufferStart();
 				perf_count(_udd_parse_fail_perf);
 				return false;
 			}
+		}
+
+		if (static_cast<size_t>(messageLength + (messageDataOffset - _buf)) > BUFFER_SIZE) {
+			moveMessageHeaderToBufferStart();
+			perf_count(_udd_parse_fail_perf);
+			return false;
 		}
 
 		messageDataOffset += messageLength;
