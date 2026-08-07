@@ -318,23 +318,34 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		return;
 	}
 
+	const auto &uddTypes = data->uddDataTypesList;
+	const bool hasOrientation = uddTypes[InertialLabs::DataType::ORIENTATION_ANGLES];
+	const bool hasVelocity    = uddTypes[InertialLabs::DataType::VELOCITIES];
+	const bool hasAccuracy    = uddTypes[InertialLabs::DataType::INS_POS_VEL_ACCURACY];
+
 	const bool isFilterOk = (data->ins.unitStatus & InertialLabs::USW::INITIAL_ALIGNMENT_FAIL) == 0 &&
 				 data->ins.solutionStatus != InertialLabs::InsSolution::INVALID;
 	const bool isAccelOk = (data->ins.unitStatus & InertialLabs::USW::ACCEL_FAIL) == 0;
 	const bool isGyroOk  = (data->ins.unitStatus & InertialLabs::USW::GYRO_FAIL) == 0;
-	const bool isMagOk   = (data->ins.unitStatus & InertialLabs::USW::MAG_FAIL) == 0;
+	const bool isMagOk   = uddTypes[InertialLabs::DataType::MAG_DATA] &&
+			       (data->ins.unitStatus & InertialLabs::USW::MAG_FAIL) == 0;
 
 	// true if received new GNSS position or velocity
 	const bool hasNewGpsData = (data->gps.newData & (InertialLabs::NewGpsData::NEW_GNSS_POSITION | InertialLabs::NewGpsData::NEW_GNSS_VELOCITY));
 	const bool hasEnoughSatellites = data->gps.usedSatCount > 3;
-	const bool isPosOk   = (std::abs(data->ins.latitude) > 1e-7) &&
+	const bool isPosOk   = uddTypes[InertialLabs::DataType::POSITION] &&
+			       (std::abs(data->ins.latitude) > 1e-7) &&
 			       (std::abs(data->ins.longitude) > 1e-7);
 
-	const bool isBaroOk = (data->ins.unitStatus2 & InertialLabs::USW2::ADU_BARO_FAIL) == 0;
-	const bool isDiffPressOk = data->uddDataTypesList[InertialLabs::DataType::DIFFERENTIAL_PRESSURE] &&
+	const bool isBaroOk = uddTypes[InertialLabs::DataType::BARO_DATA] &&
+			      uddTypes[InertialLabs::DataType::UNIT_STATUS2] &&
+			      (data->ins.unitStatus2 & InertialLabs::USW2::ADU_BARO_FAIL) == 0;
+	const bool isDiffPressOk = uddTypes[InertialLabs::DataType::DIFFERENTIAL_PRESSURE] &&
+				   uddTypes[InertialLabs::DataType::UNIT_STATUS2] &&
 				   (data->ins.unitStatus2 & InertialLabs::USW2::ADU_DIFF_PRESS_FAIL) == 0;
-	const bool isAirspeedOk = data->uddDataTypesList[InertialLabs::DataType::TRUE_AIRSPEED] &&
-				  data->uddDataTypesList[InertialLabs::DataType::CALIBRATED_AIRSPEED] &&
+	const bool isAirspeedOk = uddTypes[InertialLabs::DataType::TRUE_AIRSPEED] &&
+				  uddTypes[InertialLabs::DataType::CALIBRATED_AIRSPEED] &&
+				  uddTypes[InertialLabs::DataType::AIR_DATA_STATUS] &&
 				  (data->ins.airDataStatus & InertialLabs::ADU::AIRSPEED_FAIL) == 0;
 
 	const bool isSpoofed = (data->gps.spoofingStatus != InertialLabs::SpoofingStatus::UNKNOWN_OR_DEACTIVATED) &&
@@ -453,7 +464,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 	}
 
 	// publish attitude
-	if (isFilterOk) {
+	if (isFilterOk && hasOrientation) {
 		const matrix::Quatf quat{matrix::Eulerf(math::radians(data->ins.roll),
 							math::radians(data->ins.pitch),
 							math::radians(data->ins.yaw))};
@@ -486,16 +497,16 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 			local_position.xy_valid   = true;
 			local_position.z_valid    = true;
-			local_position.v_xy_valid = true;
-			local_position.v_z_valid  = true;
+			local_position.v_xy_valid = hasVelocity;
+			local_position.v_z_valid  = hasVelocity;
 
 			const matrix::Vector2f pos_ned = _ref_pos.project(data->ins.latitude, data->ins.longitude);
 			local_position.x               = pos_ned(0);
 			local_position.y               = pos_ned(1);
 			local_position.z               = -(data->ins.altitude - _ref_pos_data.alt);
 
-			local_position.eph             = eph;
-			local_position.epv             = epv;
+			local_position.eph             = hasAccuracy ? eph : NAN;
+			local_position.epv             = hasAccuracy ? epv : NAN;
 
 			local_position.ref_timestamp   = _ref_timestamp;
 			local_position.ref_lat         = _ref_pos_data.lat;
@@ -512,7 +523,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 			local_position.heading = matrix::wrap_pi(math::radians(data->ins.yaw));
 			local_position.unaided_heading          = NAN;
-			local_position.heading_good_for_control = true;
+			local_position.heading_good_for_control = hasOrientation;
 
 			local_position.xy_global = true;
 			local_position.z_global  = true;
@@ -521,8 +532,9 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 			const float northVel_err = static_cast<float>(data->ins.accuracy.northVel) * 0.001f;
 			const float eastVel_err = static_cast<float>(data->ins.accuracy.eastVel) * 0.001f;
-			local_position.evh = sqrtf(northVel_err * northVel_err + eastVel_err * eastVel_err);
-			local_position.evv = static_cast<float>(data->ins.accuracy.verVel) * 0.001f;
+			local_position.evh = hasAccuracy ?
+					     sqrtf(northVel_err * northVel_err + eastVel_err * eastVel_err) : NAN;
+			local_position.evv = hasAccuracy ? static_cast<float>(data->ins.accuracy.verVel) * 0.001f : NAN;
 
 			local_position.dead_reckoning = isDeadReckoning;
 
@@ -548,8 +560,8 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		global_position.lat           = data->ins.latitude;
 		global_position.lon           = data->ins.longitude;
 		global_position.alt           = data->ins.altitude;
-		global_position.eph           = eph;
-		global_position.epv           = epv;
+		global_position.eph           = hasAccuracy ? eph : NAN;
+		global_position.epv           = hasAccuracy ? epv : NAN;
 
 		global_position.dead_reckoning = isDeadReckoning;
 
@@ -558,7 +570,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 	}
 
 	// publish GPS data
-	if (isFilterOk && hasNewGpsData && isGnssValid) {
+	if (isFilterOk && hasNewGpsData && isGnssValid && uddTypes[InertialLabs::DataType::GNSS_POSITION]) {
 		sensor_gps_s sensor_gps{};
 		sensor_gps.timestamp        = time_now_us;
 		sensor_gps.timestamp_sample = time_now_us;

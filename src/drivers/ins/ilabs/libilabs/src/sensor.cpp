@@ -704,6 +704,33 @@ bool Sensor::parseUDDPayload()
 		messageDataOffset += messageLength;
 	}
 
+
+	if (!hasUDDRequiredDataTypes()) {
+		moveMessageHeaderToBufferStart();
+		perf_count(_udd_parse_fail_perf);
+		return false;
+	}
+
+	return true;
+}
+
+bool Sensor::hasUDDRequiredDataTypes() const
+{
+	static constexpr DataType requiredTypes[] {
+		DataType::GPS_INS_TIME_MS,
+		DataType::ACCEL_DATA_HR,
+		DataType::GYRO_DATA_HR,
+		DataType::UNIT_STATUS,
+		DataType::TEMPERATURE,
+		DataType::INS_SOLUTION_STATUS,
+	};
+
+	for (const DataType type : requiredTypes) {
+		if (!_sensorData.uddDataTypesList[type]) {
+			return false;
+		}
+	}
+
 	return true;
 }
 

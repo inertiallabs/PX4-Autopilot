@@ -83,6 +83,7 @@ private:
 	bool readData();
 	bool moveMessageHeaderToBufferStart();
 	bool parseUDDPayload();
+	bool hasUDDRequiredDataTypes() const;
 
 private:
 	device::Serial  *_serial{nullptr};
