@@ -35,6 +35,7 @@
 
 #include <stdint.h>
 
+#include <containers/Bitset.hpp>
 #include <matrix/matrix/math.hpp>
 
 #define PACKED __attribute__((packed))
@@ -402,6 +403,7 @@ struct SensorsData {
 	float            differentialPressure;  // Pa
 	float            temperature;           // degC
 	float            supplyVoltage;         // V
+	px4::Bitset<256> uddDataTypesList;
 };
 
 struct AccumulatedSensorsData {

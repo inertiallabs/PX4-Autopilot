@@ -331,8 +331,11 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 			       (std::abs(data->ins.longitude) > 1e-7);
 
 	const bool isBaroOk = (data->ins.unitStatus2 & InertialLabs::USW2::ADU_BARO_FAIL) == 0;
-	const bool isDiffPressOk = (data->ins.unitStatus2 & InertialLabs::USW2::ADU_DIFF_PRESS_FAIL) == 0;
-	const bool isAirspeedOk = (data->ins.airDataStatus & InertialLabs::ADU::AIRSPEED_FAIL) == 0;
+	const bool isDiffPressOk = data->uddDataTypesList[InertialLabs::DataType::DIFFERENTIAL_PRESSURE] &&
+				   (data->ins.unitStatus2 & InertialLabs::USW2::ADU_DIFF_PRESS_FAIL) == 0;
+	const bool isAirspeedOk = data->uddDataTypesList[InertialLabs::DataType::TRUE_AIRSPEED] &&
+				  data->uddDataTypesList[InertialLabs::DataType::CALIBRATED_AIRSPEED] &&
+				  (data->ins.airDataStatus & InertialLabs::ADU::AIRSPEED_FAIL) == 0;
 
 	const bool isSpoofed = (data->gps.spoofingStatus != InertialLabs::SpoofingStatus::UNKNOWN_OR_DEACTIVATED) &&
 			       (data->gps.spoofingStatus != InertialLabs::SpoofingStatus::NO);

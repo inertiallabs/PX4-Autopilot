@@ -400,10 +400,14 @@ bool Sensor::parseUDDPayload()
 	// 1 byle for message count + byte list of messages types
 	const uint8_t *messageDataOffset = &payload[1 + messageCount];
 
+	_sensorData.uddDataTypesList.reset();
+
 	for (uint8_t i = 0; i < messageCount; i++) {
 		uint8_t         messageLength = 0;
 		UDDMessageData &udd           = *(UDDMessageData *)messageDataOffset;
 		uint8_t         messageType   = payload[1 + i];
+
+		_sensorData.uddDataTypesList.set(messageType);
 
 		switch (messageType) {
 		case DataType::GPS_INS_TIME_MS: {
