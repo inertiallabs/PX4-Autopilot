@@ -49,6 +49,38 @@ constexpr uint64_t GPS_EPOCH_SECS = 315964800ULL;
 
 constexpr uint8_t DECIMATION_VALUE = 20;
 
+uint8_t ToPx4SpoofingState(uint8_t spoofingStatus)
+{
+	switch (spoofingStatus) {
+	case InertialLabs::SpoofingStatus::NO:
+		return sensor_gps_s::SPOOFING_STATE_OK;
+
+	case InertialLabs::SpoofingStatus::INDICATED:
+	case InertialLabs::SpoofingStatus::MULTIPLE_INCIDATIONS:
+		return sensor_gps_s::SPOOFING_STATE_DETECTED;
+
+	default:
+		return sensor_gps_s::SPOOFING_STATE_UNKNOWN;
+	}
+}
+
+uint8_t ToPx4JammingState(uint8_t jamStatus)
+{
+	switch (jamStatus) {
+	case InertialLabs::JammingStatus::NO_SIGNIFICANT:
+		return sensor_gps_s::JAMMING_STATE_OK;
+
+	case InertialLabs::JammingStatus::WARNING:
+		return sensor_gps_s::JAMMING_STATE_MITIGATED;
+
+	case InertialLabs::JammingStatus::CRITICAL:
+		return sensor_gps_s::JAMMING_STATE_DETECTED;
+
+	default:
+		return sensor_gps_s::JAMMING_STATE_UNKNOWN;
+	}
+}
+
 uint64_t ToUtcMicroseconds(uint16_t gpsWeek, uint32_t msTow)
 {
 	const uint64_t gpsTimeSec = gpsWeek * 7ULL * 86400ULL + msTow / 1000ULL;
@@ -352,10 +384,9 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 			       (data->gps.spoofingStatus != InertialLabs::SpoofingStatus::NO);
 	const bool isJammed = (data->gps.jamStatus != InertialLabs::JammingStatus::UNKNOWN_OR_DISABLED) &&
 			      (data->gps.jamStatus != InertialLabs::JammingStatus::NO_SIGNIFICANT);
-	const bool isGnssValid = hasEnoughSatellites &&
-				(data->gps.fixType >= InertialLabs::GnssFixType::FIX_3D) &&
-				!isSpoofed &&
-				!isJammed;
+	const bool hasGnssFix = hasEnoughSatellites &&
+				(data->gps.fixType >= InertialLabs::GnssFixType::FIX_3D);
+	const bool isGnssValid = hasGnssFix && !isSpoofed && !isJammed;
 	const bool isDeadReckoning = (data->ins.solutionStatus == InertialLabs::InsSolution::AUTONOMOUS_MODE) ||
 				     (data->ins.solutionStatus == InertialLabs::InsSolution::NO_GNSS_AIDING_DATA) ||
 				     (data->ins.solutionStatus == InertialLabs::InsSolution::ZUPT_MODE);
@@ -570,7 +601,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 	}
 
 	// publish GPS data
-	if (isFilterOk && hasNewGpsData && isGnssValid && uddTypes[InertialLabs::DataType::GNSS_POSITION]) {
+	if (isFilterOk && hasNewGpsData && hasGnssFix && uddTypes[InertialLabs::DataType::GNSS_POSITION]) {
 		sensor_gps_s sensor_gps{};
 		sensor_gps.timestamp        = time_now_us;
 		sensor_gps.timestamp_sample = time_now_us;
@@ -590,16 +621,20 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		sensor_gps.hdop = static_cast<float>(data->gps.dop.hdop) * 0.001f;
 		sensor_gps.vdop = static_cast<float>(data->gps.dop.vdop) * 0.001f;
 
-		sensor_gps.jamming_state = data->gps.jamStatus;
+		sensor_gps.jamming_state = ToPx4JammingState(data->gps.jamStatus);
 		sensor_gps.jamming_indicator = isJammed ? 1 : 0;
-		sensor_gps.spoofing_state = data->gps.spoofingStatus;
+		sensor_gps.spoofing_state = ToPx4SpoofingState(data->gps.spoofingStatus);
 
-		sensor_gps.vel_m_s =
-			matrix::Vector3f(data->ins.velocity(0), data->ins.velocity(1), data->ins.velocity(2)).length();
-		sensor_gps.vel_n_m_s     = data->ins.velocity(0);
-		sensor_gps.vel_e_m_s     = data->ins.velocity(1);
-		sensor_gps.vel_d_m_s     = data->ins.velocity(2);
-		sensor_gps.vel_ned_valid = true;
+		if (uddTypes[InertialLabs::DataType::GNSS_VEL_TRACK]) {
+			const float cog_rad = math::radians(data->gps.trackOverGround);
+
+			sensor_gps.vel_m_s       = data->gps.horSpeed;
+			sensor_gps.vel_n_m_s     = data->gps.horSpeed * cosf(cog_rad);
+			sensor_gps.vel_e_m_s     = data->gps.horSpeed * sinf(cog_rad);
+			sensor_gps.vel_d_m_s     = -data->gps.verSpeed;
+			sensor_gps.cog_rad       = matrix::wrap_pi(cog_rad);
+			sensor_gps.vel_ned_valid = true;
+		}
 
 		sensor_gps.time_utc_usec = ToUtcMicroseconds(data->gps.gpsWeek, data->gps.msTow);
 		sensor_gps.timestamp_time_relative = 0;
