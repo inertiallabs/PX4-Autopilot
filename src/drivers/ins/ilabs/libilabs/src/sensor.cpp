@@ -446,7 +446,7 @@ bool Sensor::parseUDDPayload()
 
 		case DataType::MAG_DATA: {
 				_sensorData.mag =
-					rfuToFrd(udd.magData.toFloat()) * 1.0e-6f;  // NED, in Gauss
+					rfuToFrd(udd.magData.toFloat()) * 1.0e-4f;  // NED, in Gauss
 				messageLength = sizeof(udd.magData);
 				break;
 			}
