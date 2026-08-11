@@ -117,7 +117,9 @@ ILabs::ILabs(const char *serialDeviceName)
 	  _global_position_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Global position publish interval")),
 	  _differential_pressure_pub_interval_perf(perf_alloc(PC_INTERVAL,
 			  MODULE_NAME ": Differential pressure publish interval")),
-	  _airspeed_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Airspeed publish interval"))
+	  _airspeed_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Airspeed publish interval")),
+	  _aux_global_position_pub_interval_perf(perf_alloc(PC_INTERVAL,
+			  MODULE_NAME ": Aux global position publish interval"))
 {
 	// store port name
 	strncpy(_serialDeviceName, serialDeviceName, sizeof(_serialDeviceName) - 1);
@@ -146,6 +148,10 @@ ILabs::ILabs(const char *serialDeviceName)
 	_sensor_gps_pub.advertise();
 	_differential_pressure_pub.advertise();
 	_airspeed_pub.advertise();
+
+	if (_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA) {
+		_aux_global_position_pub.advertise();
+	}
 }
 
 ILabs::~ILabs()
@@ -162,6 +168,7 @@ ILabs::~ILabs()
 	perf_free(_global_position_pub_interval_perf);
 	perf_free(_differential_pressure_pub_interval_perf);
 	perf_free(_airspeed_pub_interval_perf);
+	perf_free(_aux_global_position_pub_interval_perf);
 }
 
 int ILabs::task_spawn(int argc, char *argv[])
@@ -281,6 +288,7 @@ int ILabs::print_status() {
 	perf_print_counter(_global_position_pub_interval_perf);
 	perf_print_counter(_differential_pressure_pub_interval_perf);
 	perf_print_counter(_airspeed_pub_interval_perf);
+	perf_print_counter(_aux_global_position_pub_interval_perf);
 
 	return 0;
 }
@@ -598,6 +606,11 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 		_global_position_pub.publish(global_position);
 		perf_count(_global_position_pub_interval_perf);
+
+		if (_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA && hasAccuracy) {
+			_aux_global_position_pub.publish(global_position);
+			perf_count(_aux_global_position_pub_interval_perf);
+		}
 	}
 
 	// publish GPS data

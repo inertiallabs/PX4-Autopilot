@@ -124,6 +124,7 @@ private:
 	uORB::Publication<estimator_status_s>             _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::Publication<estimator_status_flags_s>       _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
 	uORB::Publication<inertial_labs_ins_s>            _inertial_labs_ins_pub{ORB_ID(inertial_labs_ins)};
+	uORB::Publication<vehicle_global_position_s>      _aux_global_position_pub{ORB_ID(aux_global_position)};
 
 	perf_counter_t _accel_pub_interval_perf;
 	perf_counter_t _gyro_pub_interval_perf;
@@ -135,4 +136,5 @@ private:
 	perf_counter_t _global_position_pub_interval_perf;
 	perf_counter_t _differential_pressure_pub_interval_perf;
 	perf_counter_t _airspeed_pub_interval_perf;
+	perf_counter_t _aux_global_position_pub_interval_perf;
 };
