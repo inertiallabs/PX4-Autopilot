@@ -63,48 +63,49 @@ struct PACKED vec3_32_t {
 };
 
 enum DataType : uint8_t {
-	GPS_INS_TIME_MS       = 0x01,
-	GPS_WEEK              = 0x3C,
-	ACCEL_DATA_HR         = 0x23,
-	GYRO_DATA_HR          = 0x21,
-	BARO_DATA             = 0x25,
-	MAG_DATA              = 0x24,
-	SENSOR_BIAS           = 0x26,
-	ORIENTATION_ANGLES    = 0x07,
-	VELOCITIES            = 0x12,
-	POSITION              = 0x10,
-	UNIT_STATUS           = 0x53,
-	GNSS_EXTENDED_INFO    = 0x4A,
-	GNSS_POSITION         = 0x30,
-	GNSS_VEL_TRACK        = 0x32,
-	GNSS_POS_TIMESTAMP    = 0x3E,
-	GNSS_NEW_DATA         = 0x41,
-	GNSS_JAM_STATUS       = 0xC0,
-	DIFFERENTIAL_PRESSURE = 0x28,
-	TRUE_AIRSPEED         = 0x86,
-	CALIBRATED_AIRSPEED   = 0x85,
-	WIND_SPEED            = 0x8A,
-	AIR_DATA_STATUS       = 0x8D,
-	SUPPLY_VOLTAGE        = 0x50,
-	TEMPERATURE           = 0x52,
-	UNIT_STATUS2          = 0x5A,
-	GNSS_DOP              = 0x42,
-	INS_SOLUTION_STATUS   = 0x54,
-	INS_POS_VEL_ACCURACY  = 0x5F,
-	FULL_SAT_INFO         = 0x37,
-	USED_SAT_COUNT        = 0x3B,
-	GNSS_VEL_LATENCY      = 0x3D,
-	GNSS_SOL_STATUS       = 0x38,
-	GNSS_POS_VEL_TYPE     = 0x39,
-	NEW_AIDING_DATA       = 0x65,
-	NEW_AIDING_DATA2      = 0xA1,
-	EXT_SPEED             = 0x61,
-	EXT_HOR_POS           = 0x6E,
-	EXT_ALT               = 0x6C,
-	EXT_HEADING           = 0x66,
-	EXT_AMBIENT_DATA      = 0x6B,
-	EXT_WIND_DATA         = 0x62,
-	MAG_CLB_ACCURACY      = 0x9A,
+	GPS_INS_TIME_MS          = 0x01,
+	GPS_WEEK                 = 0x3C,
+	ACCEL_DATA_HR            = 0x23,
+	GYRO_DATA_HR             = 0x21,
+	BARO_DATA                = 0x25,
+	MAG_DATA                 = 0x24,
+	SENSOR_BIAS              = 0x26,
+	ORIENTATION_ANGLES       = 0x07,
+	VELOCITIES               = 0x12,
+	POSITION                 = 0x10,
+	UNIT_STATUS              = 0x53,
+	GNSS_EXTENDED_INFO       = 0x4A,
+	GNSS_POSITION            = 0x30,
+	GNSS_VEL_TRACK           = 0x32,
+	GNSS_POS_TIMESTAMP       = 0x3E,
+	GNSS_NEW_DATA            = 0x41,
+	GNSS_JAM_STATUS          = 0xC0,
+	DIFFERENTIAL_PRESSURE    = 0x28,
+	TRUE_AIRSPEED            = 0x86,
+	CALIBRATED_AIRSPEED      = 0x85,
+	WIND_SPEED               = 0x8A,
+	AIR_DATA_STATUS          = 0x8D,
+	SUPPLY_VOLTAGE           = 0x50,
+	TEMPERATURE              = 0x52,
+	UNIT_STATUS2             = 0x5A,
+	GNSS_DOP                 = 0x42,
+	INS_SOLUTION_STATUS      = 0x54,
+	INS_POS_VEL_ACCURACY     = 0x5F,
+	FULL_SAT_INFO            = 0x37,
+	USED_SAT_COUNT           = 0x3B,
+	GNSS_VEL_LATENCY         = 0x3D,
+	GNSS_SOL_STATUS          = 0x38,
+	GNSS_POS_VEL_TYPE        = 0x39,
+	NEW_AIDING_DATA          = 0x65,
+	NEW_AIDING_DATA2         = 0xA1,
+	EXT_SPEED                = 0x61,
+	EXT_HOR_POS              = 0x6E,
+	EXT_ALT                  = 0x6C,
+	EXT_HEADING              = 0x66,
+	EXT_AMBIENT_DATA         = 0x6B,
+	EXT_WIND_DATA            = 0x62,
+	MAG_CLB_ACCURACY         = 0x9A,
+	GNSS_POS_SPEED_ACCURACY  = 0x43,
 };
 
 // Ins Solutiob Status
@@ -327,6 +328,10 @@ union PACKED UDDMessageData {
 	uint16_t       gnssVelLatency;  // ms
 	uint8_t        gnssSolStatus;
 	uint8_t        gnssPosVelType;
+	struct PACKED {
+		uint16_t posAccuracy;    // m*100
+		uint16_t speedAccuracy;  // m/s*100
+	} gnssPosSpeedAccuracy;
 	uint16_t       newAidingData;
 	uint16_t       newAidingData2;
 	int16_t        externalSpeed;  // kt*100
@@ -356,6 +361,8 @@ struct GpsData {
 	uint16_t    velLatency;  // ms
 	uint8_t     gnssSolStatus;
 	uint8_t     gnssPosVelType;
+	float       posAccuracy;    // m, 3D (1 sigma)
+	float       speedAccuracy;  // m/s (1 sigma)
 };
 
 struct InsData {

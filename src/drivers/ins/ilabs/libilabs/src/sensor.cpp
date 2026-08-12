@@ -680,6 +680,15 @@ bool Sensor::parseUDDPayload()
 				break;
 			}
 
+		case DataType::GNSS_POS_SPEED_ACCURACY: {
+				_sensorData.gps.posAccuracy =
+					static_cast<float>(udd.gnssPosSpeedAccuracy.posAccuracy) * 0.01f;    // m
+				_sensorData.gps.speedAccuracy =
+					static_cast<float>(udd.gnssPosSpeedAccuracy.speedAccuracy) * 0.01f;  // m/s
+				messageLength = sizeof(udd.gnssPosSpeedAccuracy);
+				break;
+			}
+
 		case DataType::MAG_CLB_ACCURACY: {
 				_sensorData.ins.magClbAccuracy = static_cast<float>(udd.magClbAccuracy) * 0.1f;  // deg
 				messageLength                  = sizeof(udd.magClbAccuracy);

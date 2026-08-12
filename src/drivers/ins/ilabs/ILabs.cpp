@@ -404,6 +404,12 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 	const float eph = sqrtf(latErr * latErr + lonErr * lonErr);
 	const float epv = static_cast<float>(data->ins.accuracy.alt) * 0.001f;
 
+	const float northVelErr = static_cast<float>(data->ins.accuracy.northVel) * 0.001f;
+	const float eastVelErr  = static_cast<float>(data->ins.accuracy.eastVel) * 0.001f;
+	const float verVelErr   = static_cast<float>(data->ins.accuracy.verVel) * 0.001f;
+	const float evh = sqrtf(northVelErr * northVelErr + eastVelErr * eastVelErr);
+	const float speedAccuracy = sqrtf(evh * evh + verVelErr * verVelErr);
+
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	_time_last_valid_imu_data.store(time_now_us);
 
@@ -569,11 +575,8 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 			local_position.dist_bottom_valid = false;
 
-			const float northVel_err = static_cast<float>(data->ins.accuracy.northVel) * 0.001f;
-			const float eastVel_err = static_cast<float>(data->ins.accuracy.eastVel) * 0.001f;
-			local_position.evh = hasAccuracy ?
-					     sqrtf(northVel_err * northVel_err + eastVel_err * eastVel_err) : NAN;
-			local_position.evv = hasAccuracy ? static_cast<float>(data->ins.accuracy.verVel) * 0.001f : NAN;
+			local_position.evh = hasAccuracy ? evh : NAN;
+			local_position.evv = hasAccuracy ? verVelErr : NAN;
 
 			local_position.dead_reckoning = isDeadReckoning;
 
@@ -628,8 +631,16 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 		sensor_gps.fix_type = data->gps.fixType + 1;
 
-		sensor_gps.eph = eph;
-		sensor_gps.epv = epv;
+		if (uddTypes[InertialLabs::DataType::GNSS_POS_SPEED_ACCURACY]) {
+			sensor_gps.eph = data->gps.posAccuracy;
+			sensor_gps.epv = data->gps.posAccuracy;
+			sensor_gps.s_variance_m_s = data->gps.speedAccuracy;
+
+		} else {
+			sensor_gps.eph = eph;
+			sensor_gps.epv = epv;
+			sensor_gps.s_variance_m_s = hasAccuracy ? speedAccuracy : 0.f;
+		}
 
 		sensor_gps.hdop = static_cast<float>(data->gps.dop.hdop) * 0.001f;
 		sensor_gps.vdop = static_cast<float>(data->gps.dop.vdop) * 0.001f;
