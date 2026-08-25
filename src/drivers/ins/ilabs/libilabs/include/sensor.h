@@ -103,7 +103,11 @@ private:
 	SensorsData _sensorData{};
 
 	perf_counter_t _checksum_fail_perf;
-	perf_counter_t _udd_parse_fail_perf;
+	perf_counter_t _udd_header_fail_perf;
+	perf_counter_t _udd_messages_count_fail_perf;
+	perf_counter_t _udd_unknown_message_type_perf;
+	perf_counter_t _udd_buffer_size_fail_perf;
+	perf_counter_t _udd_required_messages_fail_perf;
 	perf_counter_t _handle_time_perf;
 };
 

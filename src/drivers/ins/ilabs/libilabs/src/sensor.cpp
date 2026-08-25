@@ -117,7 +117,11 @@ namespace InertialLabs
 
 Sensor::Sensor()
 	: _checksum_fail_perf(perf_alloc(PC_COUNT, MODULE_NAME ": Checksum fails")),
-	  _udd_parse_fail_perf(perf_alloc(PC_COUNT, MODULE_NAME ": UDD parse fails")),
+	  _udd_header_fail_perf(perf_alloc(PC_COUNT, MODULE_NAME ": UDD header fails")),
+	  _udd_messages_count_fail_perf(perf_alloc(PC_COUNT, MODULE_NAME ": UDD messages count fails")),
+	  _udd_unknown_message_type_perf(perf_alloc(PC_COUNT, MODULE_NAME ": UDD unknown message type fails")),
+	  _udd_buffer_size_fail_perf(perf_alloc(PC_COUNT, MODULE_NAME ": UDD buffer size fails")),
+	  _udd_required_messages_fail_perf(perf_alloc(PC_COUNT, MODULE_NAME ": UDD required messages missing fails")),
 	  _handle_time_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Handle time"))
 {
 }
@@ -127,7 +131,11 @@ Sensor::~Sensor()
 	deinit();
 
 	perf_free(_checksum_fail_perf);
-	perf_free(_udd_parse_fail_perf);
+	perf_free(_udd_header_fail_perf);
+	perf_free(_udd_messages_count_fail_perf);
+	perf_free(_udd_unknown_message_type_perf);
+	perf_free(_udd_buffer_size_fail_perf);
+	perf_free(_udd_required_messages_fail_perf);
 	perf_free(_handle_time_perf);
 }
 
@@ -233,7 +241,11 @@ void Sensor::updateData()
 void Sensor::printStatus()
 {
 	perf_print_counter(_checksum_fail_perf);
-	perf_print_counter(_udd_parse_fail_perf);
+	perf_print_counter(_udd_header_fail_perf);
+	perf_print_counter(_udd_messages_count_fail_perf);
+	perf_print_counter(_udd_unknown_message_type_perf);
+	perf_print_counter(_udd_buffer_size_fail_perf);
+	perf_print_counter(_udd_required_messages_fail_perf);
 	perf_print_counter(_handle_time_perf);
 }
 
@@ -381,7 +393,7 @@ bool Sensor::parseUDDPayload()
 	if (!isMessageHeaderValid(messageHeader)) {
 		// PX4_ERR("Message header in buffer start is incorrect");
 		moveMessageHeaderToBufferStart();
-		perf_count(_udd_parse_fail_perf);
+		perf_count(_udd_header_fail_perf);
 		return false;
 	}
 
@@ -393,7 +405,7 @@ bool Sensor::parseUDDPayload()
 	if (messageCount == 0 || messageCount > payloadSize - 1) {
 		// PX4_ERR("Invalid data message. Number of messages or messages data are incorrect");
 		moveMessageHeaderToBufferStart();
-		perf_count(_udd_parse_fail_perf);
+		perf_count(_udd_messages_count_fail_perf);
 		return false;
 	}
 
@@ -699,14 +711,14 @@ bool Sensor::parseUDDPayload()
 				// PX4_ERR("Unknown message type: %d. Further message parsing result will be incorrect",
 				//         messageType);
 				moveMessageHeaderToBufferStart();
-				perf_count(_udd_parse_fail_perf);
+				perf_count(_udd_unknown_message_type_perf);
 				return false;
 			}
 		}
 
 		if (static_cast<size_t>(messageLength + (messageDataOffset - _buf)) > BUFFER_SIZE) {
 			moveMessageHeaderToBufferStart();
-			perf_count(_udd_parse_fail_perf);
+			perf_count(_udd_buffer_size_fail_perf);
 			return false;
 		}
 
@@ -716,7 +728,7 @@ bool Sensor::parseUDDPayload()
 
 	if (!hasUDDRequiredDataTypes()) {
 		moveMessageHeaderToBufferStart();
-		perf_count(_udd_parse_fail_perf);
+		perf_count(_udd_required_messages_fail_perf);
 		return false;
 	}
 
