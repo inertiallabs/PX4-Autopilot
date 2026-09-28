@@ -66,8 +66,8 @@ constexpr float GRAVITY_MSS = 9.8106f;  // acceleration due to gravity in m/s^2 
 */
 struct PACKED MessageHeader {
 	uint16_t magicNumber;    // 0x55AA
-	uint8_t  msgType;        // always 1 for INS data
-	uint8_t  msgId;          // always 0x95
+	uint8_t  msgType;        // COM Port number, Can be 1, 2, 3 or 4
+	uint8_t  msgId;          // Message ID. Can be 0x95, 0xC5, 0xC8 or 0xCB
 	uint16_t msgLen;         // payload + 6(msgType + msgId + msgLen + checksum). Not included magicNumber
 };
 
@@ -83,7 +83,9 @@ bool isMessageHeaderValid(const MessageHeader *header)
 		return false;
 	}
 
-	return header->magicNumber == MAGIC_NUMBER && header->msgType == 1 && header->msgId == 0x95 &&
+	return header->magicNumber == MAGIC_NUMBER &&
+	       (header->msgType >= 1 && header->msgType <= 4) &&
+	       (header->msgId == 0x95 || header->msgId == 0xC5 || header->msgId == 0xC8 || header->msgId == 0xCB) &&
 	       header->msgLen > MESSAGE_HEADER_LEN &&
 	       (header->msgLen + MAGIC_NUMBER_LEN) <= InertialLabs::BUFFER_SIZE;
 }
