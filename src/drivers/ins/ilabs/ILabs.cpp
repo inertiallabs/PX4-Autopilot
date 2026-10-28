@@ -662,7 +662,9 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 			sensor_gps.vel_ned_valid = true;
 		}
 
-		sensor_gps.time_utc_usec = ToUtcMicroseconds(data->gps.gpsWeek, data->gps.msTow);
+		const bool hasGpsTime = uddTypes[InertialLabs::DataType::GPS_WEEK] &&
+					uddTypes[InertialLabs::DataType::GNSS_POS_TIMESTAMP];
+		sensor_gps.time_utc_usec = hasGpsTime ? ToUtcMicroseconds(data->gps.gpsWeek, data->gps.msTow) : 0;
 		sensor_gps.timestamp_time_relative = 0;
 
 		sensor_gps.satellites_used = data->gps.usedSatCount;
