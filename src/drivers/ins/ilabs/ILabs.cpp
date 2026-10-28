@@ -508,11 +508,12 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		++_accumulated_sensors_data.airspeedCount;
 	}
 
+	const matrix::Quatf quat{matrix::Eulerf(math::radians(data->ins.roll),
+						math::radians(data->ins.pitch),
+						math::radians(data->ins.yaw))};
+
 	// publish attitude
 	if (isFilterOk && hasOrientation) {
-		const matrix::Quatf quat{matrix::Eulerf(math::radians(data->ins.roll),
-							math::radians(data->ins.pitch),
-							math::radians(data->ins.yaw))};
 		vehicle_attitude_s  attitude{};
 		attitude.timestamp        = time_now_us;
 		attitude.timestamp_sample = time_now_us;
@@ -562,9 +563,10 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 			local_position.vy = data->ins.velocity(1);
 			local_position.vz = data->ins.velocity(2);
 
-			local_position.ax = data->accel(0);
-			local_position.ay = data->accel(1);
-			local_position.az = data->accel(2);
+			const matrix::Vector3f accel_ned = quat.rotateVector(data->accel) + matrix::Vector3f{0.f, 0.f, CONSTANTS_ONE_G};
+			local_position.ax = hasOrientation ? accel_ned(0) : NAN;
+			local_position.ay = hasOrientation ? accel_ned(1) : NAN;
+			local_position.az = hasOrientation ? accel_ned(2) : NAN;
 
 			local_position.heading = matrix::wrap_pi(math::radians(data->ins.yaw));
 			local_position.unaided_heading          = NAN;
