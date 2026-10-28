@@ -283,7 +283,7 @@ union PACKED UDDMessageData {
 	vec3_32_t gyroDataHr;   // deg/s * 1e5
 	struct PACKED {
 		uint16_t pressurePa2;  // Pascals/2
-		int32_t  baroAlt;      // meters*100, can be WGS84 or AMSL
+		int32_t  baroAlt;      // meters*100, AMSL
 	} baroData;
 	vec3_16_t  magData;  // nT/10
 	SensorBias sensorBias;
@@ -296,14 +296,14 @@ union PACKED UDDMessageData {
 	struct PACKED {
 		int32_t lat;  // deg*1e7
 		int32_t lon;  // deg*1e7
-		int32_t alt;  // m*100, can be WGS84 or AMSL
+		int32_t alt;  // m*100, AMSL
 	} position;
 	uint16_t         unitStatus;  // set ILABS_UNIT_STATUS_*
 	GnssExtendedInfo gnssExtendedInfo;
 	struct PACKED {
 		int32_t lat;  // deg*1e7
 		int32_t lon;  // deg*1e7
-		int32_t alt;  // m*100 can be WGS84 or AMSL
+		int32_t alt;  // m*100, AMSL
 	} gnssPosition;
 	struct PACKED {
 		int32_t  horSpeed;         // m/s*100
@@ -348,7 +348,7 @@ struct GpsData {
 	uint16_t    gpsWeek;
 	double      latitude;         // deg
 	double      longitude;        // deg
-	float       altitude;         // m, can be WGS84 or AMSL
+	float       altitudeMsl;      // m
 	float       horSpeed;         // m/s
 	float       verSpeed;         // m/s
 	float       trackOverGround;  // deg
@@ -372,7 +372,7 @@ struct InsData {
 	uint32_t         msTow;      // ms
 	double           latitude;   // deg
 	double           longitude;  // deg
-	float            altitude;   // m, can be WGS84 or AMSL
+	float            altitudeMsl;  // m
 	matrix::Vector3f velocity;   // NED, in m/s
 	uint16_t         unitStatus;
 	uint16_t         unitStatus2;
@@ -440,9 +440,9 @@ struct AccumulatedSensorsData {
 };
 
 struct ReferencePositionData {
-	float alt{0.f};  // deg
-	double lat{0.};  // deg
-	double lon{0.};  // m, can be WGS84 or AMSL
+	float altMsl{0.f};  // m
+	double lat{0.};     // deg
+	double lon{0.};     // deg
 };
 
 // NOLINTEND(clang-analyzer-optin.performance.Padding, altera-struct-pack-align, misc-non-private-member-variables-in-classes)

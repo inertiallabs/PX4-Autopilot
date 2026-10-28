@@ -486,10 +486,10 @@ bool Sensor::parseUDDPayload()
 			}
 
 		case DataType::POSITION: {
-				_sensorData.ins.latitude  = static_cast<double>(udd.position.lat) * 1.0e-7;  // deg
-				_sensorData.ins.longitude = static_cast<double>(udd.position.lon) * 1.0e-7;  // deg
-				_sensorData.ins.altitude  = static_cast<float>(udd.position.alt) * 0.01f;    // m
-				messageLength             = sizeof(udd.position);
+				_sensorData.ins.latitude    = static_cast<double>(udd.position.lat) * 1.0e-7;  // deg
+				_sensorData.ins.longitude   = static_cast<double>(udd.position.lon) * 1.0e-7;  // deg
+				_sensorData.ins.altitudeMsl = static_cast<float>(udd.position.alt) * 0.01f;    // m
+				messageLength               = sizeof(udd.position);
 				break;
 			}
 
@@ -507,10 +507,10 @@ bool Sensor::parseUDDPayload()
 			}
 
 		case DataType::GNSS_POSITION: {
-				_sensorData.gps.latitude  = static_cast<double>(udd.gnssPosition.lat) * 1.0e-7;  // deg
-				_sensorData.gps.longitude = static_cast<double>(udd.gnssPosition.lon) * 1.0e-7;  // deg
-				_sensorData.gps.altitude  = static_cast<float>(udd.gnssPosition.alt) * 0.01f;    // m
-				messageLength             = sizeof(udd.gnssPosition);
+				_sensorData.gps.latitude    = static_cast<double>(udd.gnssPosition.lat) * 1.0e-7;  // deg
+				_sensorData.gps.longitude   = static_cast<double>(udd.gnssPosition.lon) * 1.0e-7;  // deg
+				_sensorData.gps.altitudeMsl = static_cast<float>(udd.gnssPosition.alt) * 0.01f;    // m
+				messageLength               = sizeof(udd.gnssPosition);
 				break;
 			}
 

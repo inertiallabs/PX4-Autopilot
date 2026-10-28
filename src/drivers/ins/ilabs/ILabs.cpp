@@ -531,9 +531,9 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 	if (isFilterOk && isPosOk) {
 		if (!_ref_pos.isInitialized()) {
 			_ref_pos.initReference(data->ins.latitude, data->ins.longitude, time_now_us);
-			_ref_pos_data.alt = data->ins.altitude;
-			_ref_pos_data.lat = data->ins.latitude;
-			_ref_pos_data.lon = data->ins.longitude;
+			_ref_pos_data.altMsl = data->ins.altitudeMsl;
+			_ref_pos_data.lat    = data->ins.latitude;
+			_ref_pos_data.lon    = data->ins.longitude;
 			_ref_timestamp = time_now_us;
 		}
 		if (_ref_pos.isInitialized()) {
@@ -549,7 +549,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 			const matrix::Vector2f pos_ned = _ref_pos.project(data->ins.latitude, data->ins.longitude);
 			local_position.x               = pos_ned(0);
 			local_position.y               = pos_ned(1);
-			local_position.z               = -(data->ins.altitude - _ref_pos_data.alt);
+			local_position.z               = -(data->ins.altitudeMsl - _ref_pos_data.altMsl);
 
 			local_position.eph             = hasAccuracy ? eph : NAN;
 			local_position.epv             = hasAccuracy ? epv : NAN;
@@ -557,7 +557,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 			local_position.ref_timestamp   = _ref_timestamp;
 			local_position.ref_lat         = _ref_pos_data.lat;
 			local_position.ref_lon         = _ref_pos_data.lon;
-			local_position.ref_alt         = _ref_pos_data.alt;
+			local_position.ref_alt         = _ref_pos_data.altMsl;
 
 			local_position.vx = data->ins.velocity(0);
 			local_position.vy = data->ins.velocity(1);
@@ -603,7 +603,8 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		global_position.alt_valid     = true;
 		global_position.lat           = data->ins.latitude;
 		global_position.lon           = data->ins.longitude;
-		global_position.alt           = data->ins.altitude;
+		global_position.alt           = data->ins.altitudeMsl;
+		global_position.alt_ellipsoid = global_position.alt;
 		global_position.eph           = hasAccuracy ? eph : NAN;
 		global_position.epv           = hasAccuracy ? epv : NAN;
 
@@ -628,8 +629,8 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 		sensor_gps.latitude_deg   = data->gps.latitude;
 		sensor_gps.longitude_deg  = data->gps.longitude;
-		sensor_gps.altitude_ellipsoid_m = data->gps.altitude;
-		sensor_gps.altitude_msl_m = data->gps.altitude;
+		sensor_gps.altitude_msl_m = data->gps.altitudeMsl;
+		sensor_gps.altitude_ellipsoid_m = sensor_gps.altitude_msl_m;
 
 		sensor_gps.fix_type = data->gps.fixType + 1;
 
