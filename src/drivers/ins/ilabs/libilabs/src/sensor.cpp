@@ -500,9 +500,7 @@ bool Sensor::parseUDDPayload()
 			}
 
 		case DataType::GNSS_EXTENDED_INFO: {
-				_sensorData.gps.fixType        = udd.gnssExtendedInfo.fixType;
-				_sensorData.gps.spoofingStatus = udd.gnssExtendedInfo.spoofingStatus;
-				messageLength                  = sizeof(udd.gnssExtendedInfo);
+				messageLength = sizeof(udd.gnssExtendedInfo);
 				break;
 			}
 
@@ -538,8 +536,7 @@ bool Sensor::parseUDDPayload()
 			}
 
 		case DataType::GNSS_JAM_STATUS: {
-				_sensorData.gps.jamStatus = udd.gnssJamStatus;
-				messageLength             = sizeof(udd.gnssJamStatus);
+				messageLength = sizeof(udd.gnssJamStatus);
 				break;
 			}
 

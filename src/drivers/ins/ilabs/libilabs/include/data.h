@@ -152,7 +152,7 @@ enum USW2 : uint16_t {
 	MAG_AUTO_CAL_3D_RUNTIME = (1U << 6),
 	GNSS_FUSION_OFF         = (1U << 7),
 	DIFF_PRESS_FUSION_OFF   = (1U << 8),
-	GNSS_POS_VALID          = (1U << 10),
+	GNSS_POS_INVALID        = (1U << 10),
 };
 
 // Air Data Status bits
@@ -191,25 +191,21 @@ enum NewAidingData : uint16_t {
 	NEW_ADC         = (1U << 15),
 };
 
-enum JammingStatus : uint8_t {
-	UNKNOWN_OR_DISABLED = 0,
-	NO_SIGNIFICANT      = 1,  // No significant jamming
-	WARNING             = 2,  // Interference visible but fix ok
-	CRITICAL            = 3,  // Interference visible and no fix
-};
-
-enum SpoofingStatus : uint8_t {
-	UNKNOWN_OR_DEACTIVATED = 0,
-	NO                     = 1,
-	INDICATED              = 2,
-	MULTIPLE_INCIDATIONS   = 3,
-};
-
-enum GnssFixType : uint8_t {
-	NO_FIX = 0,
-	FIX_2D = 1,
-	FIX_3D = 2,
-	OTHER  = 3,
+enum GnssPosType : uint8_t {
+	NO_SOLUTION          = 0,
+	DOPPLER_VELOCITY     = 8,
+	SINGLE_POINT         = 16,
+	PSEUDORANGE_DIFF     = 17,
+	SBAS                 = 18,
+	FLOAT_L1             = 32,
+	FLOAT_IONO_FREE      = 33,
+	FLOAT_NARROW_LANE    = 34,
+	INTEGER_L1           = 48,
+	INTEGER_NARROW_LANE  = 50,
+	PPP_CONVERGING       = 68,
+	PPP                  = 69,
+	PPP_BASIC_CONVERGING = 77,
+	PPP_BASIC            = 78,
 };
 
 struct PACKED SensorBias {
@@ -354,9 +350,6 @@ struct GpsData {
 	float       trackOverGround;  // deg
 	GnssDop     dop;
 	uint8_t     newData;
-	uint8_t     fixType;
-	uint8_t     spoofingStatus;
-	uint8_t     jamStatus;
 	uint8_t     usedSatCount;
 	uint16_t    velLatency;  // ms
 	uint8_t     gnssSolStatus;
